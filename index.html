@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="icon" type="image/png" href="Images/weather.png" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+<div class="card">
+    <div class="search">
+        <input type="text" placeholder="Enter the city name" spellcheck="false">
+        <ul id="city-suggestions" class="suggestions-list"></ul>
+        <button><img src="Images/search.png"></button>
+    </div>
+    <div class="error">
+        <p> Invalid city name</p>
+    </div>
+    <div class="weather">
+        <img src="Images/rain.png" class="weather-icon">
+        <h1 class="temp">22°c</h1>
+        <h2 class="city">New York</h2>
+        <div class="details">
+            <div class="col">
+                <img src="Images/humidity.png" >
+                <div>
+                    <p class="humidity">50%</p>
+                    <p>Humidity</p>
+                </div>
+            </div>
+            <div class="col">
+                <img src="Images/wind.png" >
+                <div>
+                    <p class="wind">15km/h</p>
+                    <p>Wind Speed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mode">
+    <input type="checkbox"  id="mode-btn">
+    <label for="mode-btn" class="btn"></label>
+</div>
+
+
+<footer>
+    <p>&copy; 2024 Nishanthi. All rights reserved.</p>
+</footer>
+
+
+
+
+
+<script>
+
+const apiKey = "2ef12864451229ff11094dc8f373e3dc";
+const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+const geoApiUrl = "https://api.openweathermap.org/geo/1.0/direct?q=";
+
+const searchBox = document.querySelector(".search input")
+const searchBtn = document.querySelector(".search button")
+const wetherIcon = document.querySelector(".weather-icon")
+
+const suggestionsList = document.createElement("ul");
+suggestionsList.classList.add("suggestions-list");
+document.querySelector(".search").appendChild(suggestionsList);
+
+const countries = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Anguilla", 
+  "Antigua & Barbuda", "Argentina", "Armenia", "Aruba", "Australia", 
+  "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", 
+  "Belarus", "Belgium", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivia", 
+  "Bosnia & Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", 
+  "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Chile", 
+  "China", "Colombia", "Congo", "Croatia", "Cuba", "Cyprus", "Denmark", 
+  "Djibouti", "Dominica", "Ecuador", "Egypt", "Estonia", "Ethiopia", "Finland", 
+  "France", "Germany", "Greece", "India", "Indonesia", "Italy", "Japan", 
+  "Kenya", "Malaysia", "Mexico", "Morocco", "Nepal", "Netherlands", 
+  "Norway", "Pakistan", "Philippines", "Portugal", "Russia", "South Korea", 
+  "Spain", "Sri Lanka", "Sweden", "Thailand", "Turkey", "Ukraine", "United Kingdom", 
+  "United States of America", "Vietnam", "Zimbabwe"
+];
+
+
+async function checkWeather(city){
+    const response = await fetch(apiUrl + city +`&appid=${apiKey}`);
+
+     if(response.status == 404){
+        document.querySelector(".error").style.display = "block";
+        document.querySelector(".weather").style.display = "none";
+     }
+     else{
+        var data = await response.json();
+        console.log(data)
+
+   
+
+    document.querySelector(".city").innerHTML = data.name;
+    document.querySelector(".temp").innerHTML = Math.round(data.main.temp ) +"°c";
+    document.querySelector(".humidity").innerHTML = data.main.humidity+"%";
+    document.querySelector(".wind").innerHTML = data.wind.speed+" km/h";
+
+
+    if(data.weather[0].main == "Clouds"){
+        wetherIcon.src = "images/cloudy.png";
+    }
+    else if(data.weather[0].main == "Clear"){
+        wetherIcon.src = "images/clear.png";
+    }
+    else if(data.weather[0].main == "Rain"){
+        wetherIcon.src = "images/rain.png";
+    } 
+    else if(data.weather[0].main == "Drizzle"){
+        wetherIcon.src = "images/drizzle.png";
+    }  
+    else if(data.weather[0].main == "Mist"){
+        wetherIcon.src = "images/mist.png";
+    } 
+
+    document.querySelector(".weather").style.display = "block";
+    document.querySelector(".error").style.display = "none";
+     }
+
+}
+
+
+
+
+// Fetch city suggestions
+async function fetchCitySuggestions(query) {
+  if (!query) {
+    suggestionsList.innerHTML = ""; // Clear suggestions if input is empty
+    return;
+  }
+
+  try {
+    const response = await fetch(`${geoApiUrl}${query}&limit=1&appid=${apiKey}`);
+    const cities = await response.json();
+
+    suggestionsList.innerHTML = ""; // Clear old suggestions
+
+    // Add matching countries to suggestions
+    countries.forEach((country) => {
+      if (country.toLowerCase().includes(query.toLowerCase())) {
+        const li = document.createElement("li");
+        li.textContent = country;
+        li.addEventListener("click", () => {
+          searchBox.value = country;
+          suggestionsList.innerHTML = "";
+          checkWeather(country);
+        });
+        suggestionsList.appendChild(li);
+      }
+    });
+
+    // Add city suggestions from API
+    cities.forEach((city) => {
+      const li = document.createElement("li");
+      li.textContent = `${city.name}, ${city.country}`;
+      li.addEventListener("click", () => {
+        searchBox.value = city.name;
+        suggestionsList.innerHTML = "";
+        checkWeather(city.name);
+      });
+      suggestionsList.appendChild(li);
+    });
+  } catch (error) {
+    console.error("Error fetching city suggestions:", error);
+  }
+}
+
+
+
+searchBtn.addEventListener("click",()=>{
+    checkWeather(searchBox.value)
+})
+
+
+searchBox.addEventListener("keydown",(event) => {
+    if(event.key == "Enter"){
+        event.preventDefault();
+        checkWeather(searchBox.value);
+        suggestionsList.innerHTML = ""; // Clear suggestions
+    }
+})
+
+
+searchBox.addEventListener("input", () => {
+  fetchCitySuggestions(searchBox.value);
+});
+
+// Hide suggestions when clicking outside
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search")) {
+    suggestionsList.innerHTML = "";
+  }
+});
+
+
+
+
+document.addEventListener("DOMContentLoaded",function() {
+    const checkbox = document.getElementById("mode-btn");
+    const body = document.querySelector("body");
+    const footer = document.querySelector("footer")
+    checkbox.addEventListener("change", function () {
+        if(this.checked){
+            body.style.backgroundColor = "black";
+            footer.style.color = "white";
+        }else{
+            body.style.backgroundColor = "aliceblue";
+            footer.style.color = "black";
+        }
+
+    })
+
+})
+
+</script>
+
+
+
+</body>
+</html>
